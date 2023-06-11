@@ -27,11 +27,10 @@ from . import astrometry
 import urllib.request
 
 
-
 def get_hips_image(hips, ra=None, dec=None, width=None, height=None, fov=None,
                    wcs=None, shape=None, header=None,
                    asinh=None, normalize=True, upscale=False,
-                   get_header=True, local_file_path=None,verbose=False):
+                   get_header=True, local_file_path=None, verbose=False):
     """Load the image from any HiPS survey using CDS hips2fits service.
 
     The image scale and orientation may be specified by either center coordinates and fov,
@@ -56,14 +55,15 @@ def get_hips_image(hips, ra=None, dec=None, width=None, height=None, fov=None,
     """
 
     # Simple wrapper around print for logging in verbose mode only
-    log = (verbose if callable(verbose) else print) if verbose else lambda *args,**kwargs: None
+    log = (verbose if callable(verbose)
+           else print) if verbose else lambda *args, **kwargs: None
 
     if wcs is None and header is not None:
         wcs = WCS(header)
 
     if width is None or height is None:
         if shape is not None:
-            height,width = shape
+            height, width = shape
         elif header is not None:
             width = header['NAXIS1']
             height = header['NAXIS2']
@@ -84,7 +84,8 @@ def get_hips_image(hips, ra=None, dec=None, width=None, height=None, fov=None,
             upscale = int(np.ceil(pixscale / 1))
 
             if upscale > 1:
-                log('Will upscale the image from %.2f to %.2f arcsec/pix' % (pixscale, pixscale/upscale))
+                log('Will upscale the image from %.2f to %.2f arcsec/pix' %
+                    (pixscale, pixscale/upscale))
 
         if upscale and upscale > 1:
             log('Upscaling the image %dx' % upscale)
@@ -105,27 +106,25 @@ def get_hips_image(hips, ra=None, dec=None, width=None, height=None, fov=None,
         params['fov'] = fov
     else:
         log('Sky position and size are not provided')
-        return None,None
+        return None, None
 
     if width is None or height is None:
         log('Frame size is not provided')
-        return None,None
+        return None, None
 
     for baseurl in ['http://alasky.u-strasbg.fr/hips-image-services/hips2fits', 'http://alaskybis.u-strasbg.fr/hips-image-services/hips2fits']:
         url = baseurl + '?' + urlencode(params)
 
-
-
         try:
             t0 = time.time()
-            hdu=""
+            hdu = ""
             if local_file_path is None:
                 print("line 121")
                 hdu = fits.open(url)
             else:
                 urllib.request.urlretrieve(url, local_file_path)
                 hdu = fits.open(local_file_path)
-            
+
             t1 = time.time()
             log('Downloaded HiPS image in %.2f s' % (t1 - t0))
             break
@@ -181,6 +180,7 @@ def get_hips_image(hips, ra=None, dec=None, width=None, height=None, fov=None,
     else:
         return image
 
+
 def dilate_mask(mask, dilate=5):
     """
     Dilate binary mask with a given kernel size
@@ -188,13 +188,14 @@ def dilate_mask(mask, dilate=5):
 
     kernel = Tophat2DKernel(dilate).array
     # mask = binary_dilation(mask, kernel)
-    if dilate < 10 or True: # it seems convolve is faster than convolve_fft even for 2k x 2k
+    if dilate < 10 or True:  # it seems convolve is faster than convolve_fft even for 2k x 2k
         mask = convolve(mask, kernel)
     else:
         mask = convolve_fft(mask, kernel)
-    mask = mask > 1e-15*np.max(mask) # FIXME: is it correct threshold?..
+    mask = mask > 1e-15*np.max(mask)  # FIXME: is it correct threshold?..
 
     return mask
+
 
 def mask_template(tmpl, cat=None, cat_saturation_mag=None,
                   cat_col_mag='rmag', cat_col_mag_err='e_rmag',
@@ -202,7 +203,6 @@ def mask_template(tmpl, cat=None, cat_saturation_mag=None,
                   mask_nans=True, mask_masked=True,
                   mask_photometric=False, aper=2, sn=5,
                   wcs=None, dilate=5, verbose=False, _tmpdir=None):
-
     """Apply various masking heuristics (NaNs, saturated catalogue stars, etc) to the template image.
 
     If `mask_nans` is set, it masks all `NaN` pixels in the template
@@ -239,7 +239,8 @@ def mask_template(tmpl, cat=None, cat_saturation_mag=None,
     """
 
     # Simple wrapper around print for logging in verbose mode only
-    log = (verbose if callable(verbose) else print) if verbose else lambda *args,**kwargs: None
+    log = (verbose if callable(verbose)
+           else print) if verbose else lambda *args, **kwargs: None
 
     if mask_nans:
         tmask = ~np.isfinite(tmpl)
@@ -265,12 +266,13 @@ def mask_template(tmpl, cat=None, cat_saturation_mag=None,
 
         # Next, we also add the ones corresponding to saturation limit
         if cat_saturation_mag is not None:
-             tidx |= cat[cat_col_mag] < cat_saturation_mag
+            tidx |= cat[cat_col_mag] < cat_saturation_mag
 
         # Also, we may mask photometrically saturated stars
         if mask_photometric:
             # Detect the stars on the template and match with the catalogue
-            tobj = photometry.get_objects_sextractor(tmpl, mask=tmask, sn=sn, aper=aper, wcs=wcs, _tmpdir=_tmpdir)
+            tobj = photometry.get_objects_sextractor(
+                tmpl, mask=tmask, sn=sn, aper=aper, wcs=wcs, _tmpdir=_tmpdir)
             # tobj = photometry.measure_objects(tobj, tmpl, mask=tmask, fwhm=np.median(tobj['fwhm'][tobj['flags'] == 0]), aper=1)
 
             tm = pipeline.calibrate_photometry(tobj, cat, sr=cat_sr,
@@ -287,7 +289,8 @@ def mask_template(tmpl, cat=None, cat_saturation_mag=None,
 
         tmask[cy[tidx], cx[tidx]] = True
 
-        log(np.sum(tmask), 'template pixels masked after checking saturated (%s < %.1f) stars' % (cat_col_mag, cat_saturation_mag))
+        log(np.sum(tmask), 'template pixels masked after checking saturated (%s < %.1f) stars' % (
+            cat_col_mag, cat_saturation_mag))
 
     if dilate and dilate > 0:
         log('Dilating the mask with %d x %d kernel' % (dilate, dilate))
@@ -298,17 +301,21 @@ def mask_template(tmpl, cat=None, cat_saturation_mag=None,
 
 # PanSTARRS images
 
+
 __skycells = None
+
 
 def find_ps1_skycells(ra, dec, sr, band='r', ext='image', cell_radius=0.3, fullpath=True):
     global __skycells
 
     if __skycells is None:
         # Load skycells information and store to global variable
-        __skycells = Table.read(utils.get_data_path('ps1skycells.txt'), format='ascii')
+        __skycells = Table.read(utils.get_data_path(
+            'ps1skycells.txt'), format='ascii')
 
     # FIXME: here we may select the cells that are too far from actual footprint
-    _,idx,_ = astrometry.spherical_match(ra, dec, __skycells['ra0'], __skycells['dec0'], sr + cell_radius)
+    _, idx, _ = astrometry.spherical_match(
+        ra, dec, __skycells['ra0'], __skycells['dec0'], sr + cell_radius)
 
     if fullpath:
         # Get full path on the server
@@ -316,6 +323,7 @@ def find_ps1_skycells(ra, dec, sr, band='r', ext='image', cell_radius=0.3, fullp
     else:
         # Get just the file name
         return ['rings.v3.skycell.%04d.%03d.stk.%s.unconv%s.fits' % (_['projectionID'], _['skyCellID'], band, '.' + ext if ext != 'image' else '') for _ in __skycells[idx]]
+
 
 def get_ps1_skycells(ra0, dec0, sr0, band='r', ext='image', normalize=True, overwrite=False, _cachedir=None, _tmpdir=None, verbose=False):
     """
@@ -328,7 +336,8 @@ def get_ps1_skycells(ra0, dec0, sr0, band='r', ext='image', normalize=True, over
     """
 
     # Simple wrapper around print for logging in verbose mode only
-    log = (verbose if callable(verbose) else print) if verbose else lambda *args,**kwargs: None
+    log = (verbose if callable(verbose)
+           else print) if verbose else lambda *args, **kwargs: None
 
     # Normalize _cachedir
     if _cachedir is not None:
@@ -348,7 +357,8 @@ def get_ps1_skycells(ra0, dec0, sr0, band='r', ext='image', normalize=True, over
 
     filenames = []
 
-    cells = find_ps1_skycells(ra0, dec0, sr0, band=band, ext=ext, fullpath=True)
+    cells = find_ps1_skycells(
+        ra0, dec0, sr0, band=band, ext=ext, fullpath=True)
 
     for cell in cells:
         cellname = os.path.basename(cell)
@@ -370,13 +380,15 @@ def get_ps1_skycells(ra0, dec0, sr0, band='r', ext='image', normalize=True, over
 
     return filenames
 
+
 def normalize_ps1_skycell(filename, outname=None, verbose=False):
     """
     Normalize PanSTARRS skycell file according to its FITS header
     """
 
     # Simple wrapper around print for logging in verbose mode only
-    log = (verbose if callable(verbose) else print) if verbose else lambda *args,**kwargs: None
+    log = (verbose if callable(verbose)
+           else print) if verbose else lambda *args, **kwargs: None
 
     header = fits.getheader(filename, -1)
 
@@ -397,8 +409,10 @@ def normalize_ps1_skycell(filename, outname=None, verbose=False):
             log('Normalizing ASINH scaling in %s' % filename)
 
             x = data * 0.4 * np.log(10)
-            data = header['BOFFSET'] + header['BSOFTEN'] * (np.exp(x) - np.exp(-x))
-            header['FLXSCALE'] = 1/header['BSOFTEN'] # For proper co-adding in SWarp
+            data = header['BOFFSET'] + \
+                header['BSOFTEN'] * (np.exp(x) - np.exp(-x))
+            # For proper co-adding in SWarp
+            header['FLXSCALE'] = 1/header['BSOFTEN']
 
             for _ in ['BSOFTEN', 'BOFFSET', 'BLANK']:
                 header.remove(_, ignore_missing=True)
@@ -412,10 +426,11 @@ def normalize_ps1_skycell(filename, outname=None, verbose=False):
         fits.writeto(outname, data, header, overwrite=True)
 
 # PS1 higher level retrieval
+
+
 def get_ps1_image(band='r', ext='image', wcs=None, shape=None,
                   width=None, height=None, header=None, extra={},
                   _cachedir=None, _tmpdir=None, _workdir=None, verbose=False):
-
     """Downloads the images of specified type (image or mask) from PanSTARRS and mosaics / re-projects
     them to requested WCS pixel grid.
 
@@ -436,16 +451,19 @@ def get_ps1_image(band='r', ext='image', wcs=None, shape=None,
     """
 
     # Simple wrapper around print for logging in verbose mode only
-    log = (verbose if callable(verbose) else print) if verbose else lambda *args,**kwargs: None
+    log = (verbose if callable(verbose)
+           else print) if verbose else lambda *args, **kwargs: None
 
-    ra0,dec0,sr0 = astrometry.get_frame_center(header=header, wcs=wcs, shape=shape, width=width, height=height)
+    ra0, dec0, sr0 = astrometry.get_frame_center(
+        header=header, wcs=wcs, shape=shape, width=width, height=height)
 
-    cellnames = get_ps1_skycells(ra0, dec0, sr0, band=band, ext=ext, _cachedir=_cachedir, _tmpdir=_tmpdir, verbose=verbose)
+    cellnames = get_ps1_skycells(
+        ra0, dec0, sr0, band=band, ext=ext, _cachedir=_cachedir, _tmpdir=_tmpdir, verbose=verbose)
 
     if wcs is None:
         wcs = WCS(header)
     if shape is not None:
-        height,width = shape
+        height, width = shape
     if width is None:
         width = header['NAXIS1']
     if height is None:
@@ -456,6 +474,7 @@ def get_ps1_image(band='r', ext='image', wcs=None, shape=None,
                             _tmpdir=_tmpdir, _workdir=_workdir, verbose=verbose)
 
     return coadd
+
 
 def get_ps1_image_and_mask(band='r', **kwargs):
     """Convenience wrapper for simultaneously requesting the image and corresponding mask from Pan-STARRS image archive.
@@ -471,9 +490,11 @@ def get_ps1_image_and_mask(band='r', **kwargs):
     image = get_ps1_image(band=band, ext='image', **kwargs)
     mask = get_ps1_image(band=band, ext='mask', **kwargs)
 
-    return image,mask
+    return image, mask
 
 # Image re-projection and mosaicking code
+
+
 def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, header=None, extra={},
                     is_flags=False, use_nans=True, get_weights=False,
                     _workdir=None, _tmpdir=None, _exe=None, verbose=False):
@@ -494,7 +515,8 @@ def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, hea
     """
 
     # Simple wrapper around print for logging in verbose mode only
-    log = (verbose if callable(verbose) else print) if verbose else lambda *args,**kwargs: None
+    log = (verbose if callable(verbose)
+           else print) if verbose else lambda *args, **kwargs: None
 
     # Find the binary
     binname = None
@@ -517,11 +539,12 @@ def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, hea
     #     log("Using SWarp binary at", binname)
 
     if (width is None or height is None) and shape is not None:
-        height,width = shape
+        height, width = shape
 
     if header is None:
         # Construct minimal FITS header
-        header = fits.Header({'NAXIS':2, 'NAXIS1':width, 'NAXIS2':height, 'BITPIX':-64, 'EQUINOX': 2000.0})
+        header = fits.Header({'NAXIS': 2, 'NAXIS1': width,
+                             'NAXIS2': height, 'BITPIX': -64, 'EQUINOX': 2000.0})
     else:
         header = header.copy()
 
@@ -547,7 +570,8 @@ def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, hea
             log("Can't re-project without target WCS")
             return None
 
-    workdir = _workdir if _workdir is not None else tempfile.mkdtemp(prefix='swarp', dir=_tmpdir)
+    workdir = _workdir if _workdir is not None else tempfile.mkdtemp(
+        prefix='swarp', dir=_tmpdir)
 
     # Output coadd filename
     coaddname = os.path.join(workdir, 'coadd.fits')
@@ -576,8 +600,8 @@ def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, hea
         'VMEM_DIR': workdir,
         'RESAMPLE_DIR': workdir,
         #
-        'SUBTRACT_BACK': False, # Do not subtract the backgrounds
-        'FSCALASTRO_TYPE': 'VARIABLE', # and not re-scale the images by default
+        'SUBTRACT_BACK': False,  # Do not subtract the backgrounds
+        'FSCALASTRO_TYPE': 'VARIABLE',  # and not re-scale the images by default
     }
 
     if is_flags:
@@ -590,7 +614,7 @@ def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, hea
     # Handle input data
     filenames = []
     bzero = 0
-    for i,item in enumerate(input):
+    for i, item in enumerate(input):
         if isinstance(item, str):
             # Item is filename already
             filename = item
@@ -609,10 +633,13 @@ def reproject_swarp(input=[], wcs=None, shape=None, width=None, height=None, hea
             fits.writeto(filename, image, header, overwrite=True)
 
         filenames.append(filename)
-        bzero = max(bzero, fits.getheader(filename).get('BZERO', 0)) # Keep the largest BZERO among input files
+        # Keep the largest BZERO among input files
+        bzero = max(bzero, fits.getheader(filename).get('BZERO', 0))
 
     # Build the command line
-    command = binname + ' ' + utils.format_astromatic_opts(opts) + ' ' + ' '.join([shlex.quote(_) for _ in filenames])
+    command = binname + ' ' + \
+        utils.format_astromatic_opts(
+            opts) + ' ' + ' '.join([shlex.quote(_) for _ in filenames])
     if not verbose:
         command += ' > /dev/null 2>/dev/null'
     log('Will run SWarp like that:')
