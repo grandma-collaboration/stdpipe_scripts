@@ -1,0 +1,27 @@
+{
+  "target_ra": 148.3410224,
+		"target_dec": -45.6942146,
+		"target_radius": 900.0,
+		"event_time":"2022-10-09T13:16:59.0",
+		"res_folder":"/home/antier/STDPIPE/ASTEP",
+		"res_logs":"/LOGBOOK/",
+		"images_folder":"/home/antier/STDPIPE/ASTEP/",
+		"force":"False",
+		"verbose":"True",
+		"author":"Sarah",
+		"sextractor":"/home/antier/anaconda3/envs/stdpipe/share/sextractor/default.nnw",
+		"select_img":"AA",
+		"show_processing":"True",
+		"show_masksimg":"True",
+		"show_calib":"True",
+		"show_candidate":"True",
+		"show_refimagesous":"True",
+		"show_photorefimage":"True",
+		"show_diffimg":"True",
+		"cross_match":"True",
+		"soustraction":"False",
+		"show_upper":"True"
+		
+		
+}
+
